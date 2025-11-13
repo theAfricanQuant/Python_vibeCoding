@@ -1,184 +1,165 @@
 # Aider: AI Pair Programmer
 
-This guide covers the recommended installation, configuration, and core workflow for using `aider`, the terminal-based AI pair programmer.
+Aider is a terminal-based AI pair programmer that works directly with your local files and Git. It builds a map of your entire codebase for informed code editing.
 
-Aider works directly with your local files and integrates deeply with **Git**. It builds a map of your entire codebase, allowing it to make more informed decisions when editing code.
+## Installation
 
-## 🚀 Recommended Installation (with `uv`)
+### Recommended: Using `uv`
 
-This is the preferred method for installing `aider`. It uses `uv` to create an isolated environment, preventing conflicts with other packages. If needed, `uv` will automatically install a separate Python 3.12 just for `aider` to use.
+This method creates an isolated environment and automatically installs Python 3.12 if needed.
 
 ```bash
-# 1. Install uv (if you don't have it)
+# Install uv
 python -m pip install uv
 
-# 2. Install aider using uv's tool installer
+# Install aider
 uv tool install --force --python python3.12 --with pip aider-chat@latest
 ```
 
-\<details\>
-\<summary\>Other Installation Methods\</summary\>
+<details>
+<summary>Alternative Installation Methods</summary>
 
-### One-Liners (Mac, Linux & Windows)
-
-These one-liners will install `aider` along with Python 3.12 if needed.
-
-  * **Mac & Linux:**
-    ```bash
-    curl -LsSf https://aider.chat/install.sh | sh
-    ```
-  * **Windows (in PowerShell):**
-    ```powershell
-    powershell -ExecutionPolicy ByPass -c "irm https://aider.chat/install.ps1 | iex"
-    ```
-
-### Install with `pipx`
-
+**One-Liners:**
 ```bash
-# 1. Install pipx (if you need to)
-python -m pip install pipx
+# Mac/Linux
+curl -LsSf https://aider.chat/install.sh | sh
 
-# 2. Install aider
-pipx install aider-chat
+# Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://aider.chat/install.ps1 | iex"
 ```
 
-\</details\>
+**Using pipx:**
+```bash
+python -m pip install pipx
+pipx install aider-chat
+```
+</details>
 
------
+---
 
-## ⚙️ Configuration (Required)
+## Configuration
 
-Before you can use `aider`, you must provide an API key. The best way is in a config file.
+Create `~/.aider.conf.yml` with your API keys and default model.
 
-1.  Create a file at `~/.aider.conf.yml`.
-2.  Add your API key(s) and set a default model.
-
-Using **OpenRouter** is highly recommended as it gives you access to many different models (like Claude, GPT, Gemini, etc.) through a single API.
-
-Here is an example `.aider.conf.yml` using OpenRouter:
-
+**Option 1: OpenRouter (Recommended - One key, many models)**
 ```yaml
-# ~/.aider.conf.yml
-
-# 1. Add your OpenRouter API key
-# Get one from https://openrouter.ai
 api-key:
- - openrouter=YOUR_OPENROUTER_API_KEY_HERE
+  - openrouter=sk-or-v1-xxx...  # Get from https://openrouter.ai
 
-# 2. Set your default model
-# This uses Claude 3.5 Sonnet via OpenRouter
 model: openrouter/anthropic/claude-3.5-sonnet
-
-# 3. Optional: Enable caching to save on costs
 cache-prompts: true
 ```
 
------
+**Option 2: Multiple Providers**
+```yaml
+api-key:
+  - openrouter=sk-or-v1-xxx...     # https://openrouter.ai
+  - gemini=AIza...                 # https://aistudio.google.com/api-keys
+  - anthropic=sk-ant-xxx...        # https://console.anthropic.com/keys
+  - deepseek=sk-xxx...             # https://platform.deepseek.com/api_keys
 
-## Git Integration (Important\!)
+# Choose which to use by default
+model: gemini/gemini-2.0-flash-exp
+cache-prompts: true
+```
 
-**Aider must be run inside a git repository.**
+### Install Provider Libraries
 
-This is its core strength. Aider automatically **stages and commits** every change it makes with a descriptive commit message. This creates a perfect, auditable history of the AI's work, which you can review, amend, or undo with standard `git` commands.
+When using keys directly (not through OpenRouter), install the provider's library:
 
------
+```bash
+# For Gemini
+uv tool run --from aider-chat pip install google-generativeai
 
-## 💻 Core Workflow: The Iterative Loop
+# For Anthropic (Claude)
+uv tool run --from aider-chat pip install anthropic
+```
 
-The most effective way to use `aider` is not with a single "one-shot" prompt. Instead, treat the AI as a junior developer you manage through a structured, iterative process.
+### Recommended Models (Fall 2025)
 
-### 1\. Define (Plan Your Work)
+- `openrouter/z-ai/glm-4.6`
+- `openrouter/qwen/qwen3-next`
+- `openrouter/google/gemini-2.5-flash-preview`
+- `openrouter/openai/gpt-5` (with reasoning set to low)
+- `openrouter/anthropic/claude-3.5-sonnet`
 
-Don't just start coding. First, plan your requirements.
+---
 
-  * Use the `/ask` command (e.g., `/ask "How should we structure this feature?"`) to discuss the plan with the AI *without* it editing files.
-  * **Best Practice:** Create a `context/` directory. Inside, add a `PRD.md` (Product Requirements) and a `TASKS.md` (a numbered task list). This gives the AI a "brain" for the project.
+## Git Integration
 
-### 2\. Execute (Generate Code)
+**Aider must run inside a git repository.** It automatically stages and commits every change with descriptive messages, creating an auditable history you can review or undo with standard git commands.
 
-Once you have a plan, tell the AI to perform a task.
+---
 
-  * Switch to the default `/code` mode (or just type your prompt).
-  * Be specific: "Implement task \#1 from `context/TASKS.md`."
-  * Aider will write the code, show you a `diff`, and ask for permission to commit.
+## Core Workflow: The Iterative Loop
 
-### 3\. Check (Verify the Output)
+Treat the AI as a junior developer you manage through structured iterations:
 
-**This is the most critical step.** You are the senior developer. Never trust the AI's output blindly.
+### 1. Define (Plan)
+Plan before coding. Use `/ask` to discuss without editing files.
 
-  * Critically review the code `diff`.
-  * Run your tests. If you see a failure, **paste the entire error traceback** directly into the chat.
+**Best Practice:** Create a `context/` directory with:
+- `PRD.md` - Product requirements
+- `TASKS.md` - Numbered task list
 
-### 4\. Repeat (Provide Feedback)
+Example: `/ask "How should we structure this feature?"`
 
-Based on your check, provide clear, specific feedback.
+### 2. Execute (Generate)
+Give specific instructions to write code.
 
-  * **Weak Feedback:** "That's wrong."
-  * **Strong Feedback:** "The test failed with a `TypeError`. You need to cast the `user_input` variable to an integer before passing it to the `calculate` function."
+Example: `"Implement task #1 from context/TASKS.md"`
 
-Repeat this **Define -\> Execute -\> Check -\> Repeat** cycle for each task.
+Aider will show a diff and request permission to commit.
 
------
+### 3. Check (Verify)
+**Critical step:** Review the diff and run tests. Paste full error tracebacks into chat if tests fail.
 
-## 🐍 Modern Python Setup (using `uv`)
+### 4. Repeat (Feedback)
+Provide specific feedback based on results.
 
-`uv` is not just for installing `aider`; it's perfect for managing the projects you *build* with `aider`.
+- ❌ Weak: "That's wrong"
+- ✅ Strong: "The test failed with TypeError. Cast user_input to integer before passing to calculate()"
 
-1.  **Initialize Your Project:**
-    Use `uv` to create a modern project structure.
+---
 
-    ```bash
-    uv init --library my-new-project
-    cd my-new-project
-    ```
+## Essential Commands
 
-    This creates a `src/` layout and a `pyproject.toml`.
+- `/add [file]` / `/drop [file]` - Manage files in AI context
+- `/ask [prompt]` - Discuss without editing files
+- `/code [prompt]` - Default mode for code editing
+- `/test [command]` - Run tests and auto-fix failures
+- `/clear` - Clear chat history (saves tokens)
+- `/tokens` - Check token usage
+- `/model [name]` - Switch models mid-chat
 
-2.  **Configure `pyproject.toml`:**
-    Set up your development dependencies (like `pytest` and `ruff`) using `uv`'s `dependency-groups`.
+---
 
-    ```toml
-    [dependency-groups]
-    dev = [
-        "pytest>=8.3.5",
-        "ruff>=0.13.1",
-    ]
-    ```
+## Modern Python Setup with `uv`
 
-3.  **Test with `uv` inside `aider`:**
-    You can run `uv` commands directly from the `aider` prompt to test the AI's changes.
+Use `uv` to manage projects you build with aider:
 
-      * **Run and auto-fix:**
+```bash
+# Initialize project
+uv init --library my-new-project
+cd my-new-project
+```
 
-        ```
-        /test uv run pytest -x
-        ```
+**Configure `pyproject.toml`:**
+```toml
+[dependency-groups]
+dev = [
+    "pytest>=8.3.5",
+    "ruff>=0.13.1",
+]
+```
 
-        This command runs `pytest` (using `uv`). If it fails, `aider` will automatically try to fix the error. The `-x` flag (stop on first error) is highly recommended as it makes it easier for the AI to focus on one problem at a time.
+**Test inside aider:**
+```bash
+# Auto-fix on failure (-x stops on first error)
+/test uv run pytest -x
 
-      * **Run and review manually:**
+# Manual review
+!uv run pytest
+```
 
-        ```
-        !uv run pytest
-        ```
-
-        This runs the command and pastes the output into the chat for you to review.
-
------
-
-## 🔥 Essential Commands
-
-  * `/add [file]` / `/drop [file]`: Add or remove files from the AI's context.
-  * `/ask [prompt]`: Ask a question or plan *without* letting the AI edit files.
-  * `/code [prompt]`: The default mode. Give instructions for the AI to edit files.
-  * `/test [command]`: Run a test command and automatically try to fix failures.
-  * `/clear`: Clears the chat history to start a new task with a clean slate (saves tokens\!).
-  * `/tokens`: Check how many tokens your current context is using (and costing).
-  * `/model [model_name]`: Switch models mid-chat (e.g., `/model openrouter/openai/gpt-4o`).
-
-## 🧠 Recommended Models (as of Fall 2025)
-
-  * `openrouter/z-ai/glm-4.6`
-  * `openrouter/qwen/qwen3-next`
-  * `openrouter/google/gemini-2.5-flash-preview`
-  * `openrouter/openai/gpt-5` (with reasoning set to low)
+The `-x` flag helps AI focus on one problem at a time.
